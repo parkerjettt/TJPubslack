@@ -1,4 +1,4 @@
-**Team Jethro**
+#Team Jethro
 
 Accomplished so far:
 
