@@ -1,4 +1,4 @@
-# Team Jethro (Please note that pub.go is only for testing)
+PubDBSlack (Please note that pub.go is only for testing)
 
 ### Accomplished so far:
 
