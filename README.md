@@ -1,4 +1,4 @@
-# Team Jethro
+# Team Jethro (Please note that pub.go is only for testing)
 
 ### Accomplished so far:
 
