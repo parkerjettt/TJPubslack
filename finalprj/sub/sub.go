@@ -46,7 +46,7 @@ func main() {
 	defer client.Close()
 
 	// Create a Google Cloud Spanner client
-	spannerClient, err := spanner.NewClient(ctx, "projects/"+projectId+"/instances/intern2024ft/databases/default", option.WithCredentialsFile(`D:\Alp\internship202401svcacct.json`))
+	spannerClient, err := spanner.NewClient(ctx, "projects/"+projectId+"/instances/intern2024ft/databases/default", option.WithCredentialsFile(`C:\Users\Jet Parks\Internship\internship202401svcacct.json`))
 	if err != nil {
 		log.Fatalf("Failed to create Spanner client: %v", err)
 	}

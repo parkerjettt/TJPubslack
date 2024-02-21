@@ -80,7 +80,7 @@ func main() {
 
 	// Send the message to Slack
 
-	slackWebhookURL := "https://hooks.slack.com/services/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"
+	slackWebhookURL := "https://hooks.slack.com/services/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"
 	payload := map[string]string{"text": output.String()}
 	payloadBytes, _ := json.Marshal(payload)
 	resp, err := http.Post(slackWebhookURL, "application/json", bytes.NewBuffer(payloadBytes))

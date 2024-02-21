@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -76,7 +77,6 @@ func main() {
 
 			log.Printf("Published message with ID: %v\n", id)
 
-			time.Sleep(1 * time.Minute) // Publish a message every minute
 		}
 	}
 }
@@ -84,11 +84,42 @@ func main() {
 func generateMessage() Message {
 	return Message{
 		ID:          generateUniqueID(),
-		Date:        time.Now().Format("2006-01-02"),
-		Service:     "SampleService",
-		Description: "This is a sample description.",
-		Cost:        123.45,
+		Date:        randomDate(),
+		Service:     randomService(),
+		Description: randomDescription(),
+		Cost:        randomCost(),
 	}
+}
+
+// randomDate generates a random date string in the format "2006-01-02".
+func randomDate() string {
+	// Define a range of dates suitable for your application.
+	// Here, I'm assuming a range of 30 days.
+	min := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	max := time.Date(2023, 1, 30, 0, 0, 0, 0, time.UTC).Unix()
+
+	delta := max - min
+	sec := rand.Int63n(delta) + min
+	randomTime := time.Unix(sec, 0)
+	return randomTime.Format("2006-01-02")
+}
+
+// randomService generates a random service name.
+func randomService() string {
+	services := []string{"Service A", "Service B", "Service C"}
+	return services[rand.Intn(len(services))]
+}
+
+// randomDescription generates a random description.
+func randomDescription() string {
+	descriptions := []string{"Description A", "Description B", "Description C"}
+	return descriptions[rand.Intn(len(descriptions))]
+}
+
+// randomCost generates a random cost.
+func randomCost() float64 {
+	// Generate a random cost between 0 and 100.
+	return rand.Float64() * 100
 }
 
 func generateUniqueID() string {
