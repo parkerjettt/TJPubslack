@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	subscriptionID = flag.String("subscription", "trial-L1", "Subscription name")
+	subscriptionID = flag.String("subscription", "Demo_tj-sub", "Subscription name")
 )
 
 type Message struct {
@@ -46,7 +46,7 @@ func main() {
 	defer client.Close()
 
 	// Create a Google Cloud Spanner client
-	spannerClient, err := spanner.NewClient(ctx, "projects/"+projectId+"/instances/intern2024ft/databases/default", option.WithCredentialsFile(`C:\Users\Jet Parks\Internship\internship202401svcacct.json`))
+	spannerClient, err := spanner.NewClient(ctx, "projects/"+projectId+"/instances/intern2024ft/databases/default", option.WithCredentialsFile(`C:\Users\Jet Parks\Internship\intern202401p2.json`))
 	if err != nil {
 		log.Fatalf("Failed to create Spanner client: %v", err)
 	}

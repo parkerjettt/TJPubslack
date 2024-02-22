@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	topicID = flag.String("topic", "trial-L", "Topic name for publishing")
+	topicID = flag.String("topic", "Demo_tj", "Topic name for publishing")
 )
 
 type Message struct {
