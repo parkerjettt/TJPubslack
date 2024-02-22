@@ -12,6 +12,7 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
 )
 
 type CostRecord struct {
@@ -21,47 +22,34 @@ type CostRecord struct {
 }
 
 func main() {
-	now := time.Now()
-	defer func() {
-		fmt.Println(time.Since(now))
-	}()
-
-	projectID := "alphaus-live"
-	instanceID := "intern2024ft"
-	databaseID := "default"
+	projectId := "alphaus-live"
 
 	ctx := context.Background()
-	client, err := spanner.NewClient(ctx, fmt.Sprintf("projects/%s/instances/%s/databases/%s", projectID, instanceID, databaseID))
+	client, err := spanner.NewClient(ctx, "projects/"+projectId+"/instances/intern2024ft/databases/default", option.WithCredentialsFile(`C:\Users\Jet Parks\Internship\intern202401p2.json`))
 	if err != nil {
 		log.Fatalf("Failed to create Spanner client: %v", err)
 	}
 	defer client.Close()
+	sendSlackMessage(ctx, client)
+	// Use a ticker to send Slack messages every minute
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
 
-	runningTotalCostCh := make(chan float64)
-	runningTotalCostPerDateCh := make(chan []CostRecord)
-	runningAverageCostCh := make(chan float64)
-	numMessagesProcessedCh := make(chan int64)
+	for {
+		select {
+		case <-ticker.C:
+			go sendSlackMessage(ctx, client)
+		}
+	}
+}
 
-	go func() {
-		runningTotalCostCh <- getRunningTotalCostToDate(ctx, client)
-	}()
+func sendSlackMessage(ctx context.Context, client *spanner.Client) {
+	// now := time.Now()
 
-	go func() {
-		runningTotalCostPerDateCh <- getRunningTotalCostPerDate(ctx, client)
-	}()
-
-	go func() {
-		runningAverageCostCh <- getRunningAverageCostToDate(ctx, client)
-	}()
-
-	go func() {
-		numMessagesProcessedCh <- getNumMessagesProcessed(ctx, client)
-	}()
-
-	runningTotalCost := <-runningTotalCostCh
-	runningTotalCostPerDate := <-runningTotalCostPerDateCh
-	runningAverageCost := <-runningAverageCostCh
-	numMessagesProcessed := <-numMessagesProcessedCh
+	runningTotalCost := getRunningTotalCostToDate(ctx, client)
+	runningTotalCostPerDate := getRunningTotalCostPerDate(ctx, client)
+	runningAverageCost := getRunningAverageCostToDate(ctx, client)
+	numMessagesProcessed := getNumMessagesProcessed(ctx, client)
 
 	output := strings.Builder{}
 	output.WriteString("```\n")
@@ -79,8 +67,7 @@ func main() {
 	fmt.Println(output.String())
 
 	// Send the message to Slack
-
-	slackWebhookURL := "https://hooks.slack.com/services/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"
+	slackWebhookURL := "https://hooks.slack.com/services/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"
 	payload := map[string]string{"text": output.String()}
 	payloadBytes, _ := json.Marshal(payload)
 	resp, err := http.Post(slackWebhookURL, "application/json", bytes.NewBuffer(payloadBytes))
@@ -98,6 +85,7 @@ func main() {
 
 	log.Println("Slack message sent successfully!")
 
+	// fmt.Println("Time taken to process and send message:", time.Since(now))
 }
 
 func getRunningTotalCostToDate(ctx context.Context, client *spanner.Client) float64 {
