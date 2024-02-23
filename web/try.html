@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="css.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+
+  <body>
+
+    <header>
+      <img src="logo.png" alt="Dashboard Logo" class="logo">
+      <nav>
+        <ul>
+          <li><a href="#">About Us</a></li>
+          <li><a href="#">Contact Us</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+
+      <section class="box" id="total-cost-box">
+        <div class="box-content">
+          <i class="fas fa-dollar-sign fa-3x"></i>
+          <div class="text">
+            <h2>Total Cost to Date</h2>
+            <p id="total-cost">$0</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="box" id="total-cost-per-date-box">
+        <div class="box-content">
+          <i class="fas fa-calendar-alt fa-3x"></i>
+          <div class="text">
+            <h2>Total Cost per Date</h2>
+            <p id="total-cost-per-date">$0</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="box" id="average-cost-box">
+        <div class="box-content">
+          <i class="fas fa-chart-line fa-3x"></i>
+          <div class="text">
+            <h2>Average Cost to Date</h2>
+            <p id="average-cost">$0</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="box" id="messages-processed-box">
+        <div class="box-content">
+          <i class="fas fa-envelope fa-3x"></i>
+          <div class="text">
+            <h2>Number of Messages Processed So Far</h2>
+            <p id="messages-processed">0</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <main class="mains">
+      <section class="large-box">
+        <canvas id="costToDateChart" width="400" height="200"></canvas>
+      </section>
+      <section class="large-box">
+        <canvas id="costPerDateChart" width="400" height="200"></canvas>
+      </section>
+    </main>
+
+    <script>
+      function fetchData() {
+        fetch('http://localhost:8080/cost-data')
+          .then(response => response.json())
+          .then(data => {
+            if (data && typeof data === 'object') {
+              // Check if the data object and its properties exist
+              const totalCost = data.running_total_cost;
+              const totalCostPerDate = data.running_total_cost_per_date && data.running_total_cost_per_date.length > 0 ? data.running_total_cost_per_date[data.running_total_cost_per_date.length - 1].cost : 0;
+              const averageCost = data.running_average_cost;
+              const numMessagesProcessed = data.num_messages_processed;
+
+              // Extract latest date and cost
+              const latestDate = data.running_total_cost_per_date && data.running_total_cost_per_date.length > 0 ? data.running_total_cost_per_date[data.running_total_cost_per_date.length - 1].date : 'N/A';
+              const latestCost = totalCostPerDate;
+
+              // Update the HTML elements with the fetched data
+              document.getElementById('total-cost').innerText = '$' + (totalCost ? totalCost.toFixed(2) : '0');
+              document.getElementById('total-cost-per-date').innerText = '$' + (latestCost ? latestCost.toFixed(2) : '0') + ' on ' + latestDate;
+              document.getElementById('average-cost').innerText = '$' + (averageCost ? averageCost.toFixed(2) : '0');
+              document.getElementById('messages-processed').innerText = numMessagesProcessed ? numMessagesProcessed.toString() : '0';
+            } else {
+              console.error('Invalid data format:', data);
+            }
+          })
+          .catch(error => console.error('Error fetching data:', error));
+      }
+
+      // Fetch data when the page loads
+      fetchData();
+
+      function fetchAndRenderCharts() {
+        fetch('http://localhost:8080/chart-data')
+          .then(response => response.json())
+          .then(data => {
+            // Log the received data to inspect its structure
+            console.log(data);
+
+            // Render charts using fetched data
+            renderCostToDateChart(data);
+            renderCostPerDateChart(data);
+          })
+          .catch(error => console.error('Error fetching chart data:', error));
+      }
+
+      // Function to fetch data and update the dashboard
+      function updateDashboard() {
+        // Fetch cost data
+        fetchData();
+        // Fetch chart data and render charts
+        fetchAndRenderCharts();
+        // Update the dashboard again after a short delay
+        setTimeout(updateDashboard, 500);
+      }
+      // Update the dashboard initially when the page loads
+      updateDashboard();
+
+
+      // Fetch and render charts when the page loads
+      fetchAndRenderCharts();
+
+      // Function to render total cost to date chart
+      function renderCostToDateChart(data) {
+        const costToDateCtx = document.getElementById('costToDateChart').getContext('2d');
+        new Chart(costToDateCtx, {
+          type: 'line',
+          data: {
+            labels: data.labels, // Access 'labels' property instead of 'Labels'
+            datasets: [{
+              label: 'Total Cost to Date',
+              data: data.datasets[0].data,
+              borderColor: 'rgba(255, 99, 132, 1)',
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              borderWidth: 2,
+              fill: true
+            }]
+          },
+          options: {
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+      // Function to render cost per date chart
+      function renderCostPerDateChart(data) {
+        const costPerDateCtx = document.getElementById('costPerDateChart').getContext('2d');
+        new Chart(costPerDateCtx, {
+          type: 'line',
+          data: {
+            labels: data.labels, // Access 'labels' property instead of 'Labels'
+            datasets: [{
+              label: 'Total Cost per Date',
+              data: data.datasets[1].data,
+              borderColor: 'rgba(54, 162, 235, 1)',
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              borderWidth: 2,
+              fill: true
+            }]
+          },
+          options: {
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+    </script>
+
+  </body>
+
+</html>
