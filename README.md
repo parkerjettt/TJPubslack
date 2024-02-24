@@ -8,8 +8,9 @@
         -Send to Slack
         -Concurrency for calculate
         -usage of DB Aggregate functions for AVG and SUM
-
-### Needed:
-
         -Verification if it works.
         -WebApp/Terminal
+        
+### Needed:
+
+        -Checking
