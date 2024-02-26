@@ -5,11 +5,16 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"cloud.google.com/go/spanner"
+	"github.com/parkerjettt/tjfunc"
 	"google.golang.org/api/iterator"
 )
+
+type CostDataResponse struct {
+	ChartData ChartData `json:"chart_data"`
+	CostData  CostData  `json:"cost_data"`
+}
 
 type CostData struct {
 	RunningTotalCost        float64      `json:"running_total_cost"`
@@ -39,18 +44,17 @@ type Dataset struct {
 }
 
 func main() {
-	http.HandleFunc("/chart-data", handleChartDataRequest)
-	http.HandleFunc("/cost-data", handleCostDataRequest)
+	http.HandleFunc("/data", handleDataRequest)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func handleChartDataRequest(w http.ResponseWriter, r *http.Request) {
+func handleDataRequest(w http.ResponseWriter, r *http.Request) {
 	// Set CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	// Fetch data for costToDateData and costPerDateData from your database or API
+	// Fetch data from your database or API
 	ctx := context.Background()
 
 	projectID := "alphaus-live"
@@ -65,14 +69,13 @@ func handleChartDataRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	defer client.Close()
 
-	// Fetching data from the database
+	// Fetching data for chart
 	costToDateRecords := getRunningTotalCostToDatechart(ctx, client)
-	costPerDateRecords := getRunningTotalCostPerDate(ctx, client)
+	costPerDateRecords := tjfunc.GetRunningTotalCostPerDate(ctx, client)
 
 	// Populate the labels array with date values
 	var labels []string
 	for _, record := range costToDateRecords {
-		// Assuming Date has a String method that returns the date in a desired format
 		labels = append(labels, record.Date.String())
 	}
 
@@ -108,35 +111,11 @@ func handleChartDataRequest(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	// Encode the data as JSON and send it in the response
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(chartData)
-}
-
-func handleCostDataRequest(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	ctx := context.Background()
-
-	projectID := "alphaus-live"
-	instanceID := "intern2024ft"
-	databaseID := "default"
-
-	client, err := spanner.NewClient(ctx, "projects/"+projectID+"/instances/"+instanceID+"/databases/"+databaseID)
-	if err != nil {
-		http.Error(w, "Failed to create Spanner client", http.StatusInternalServerError)
-		log.Printf("Failed to create Spanner client: %v", err)
-		return
-	}
-	defer client.Close()
-
-	// Fetching data
+	// Fetching data for cost
 	totalCostToDate := getRunningTotalCostToDate(ctx, client)
 	totalCostPerDate := getRunningTotalCostPerDate(ctx, client)
-	averageCostToDate := getRunningAverageCostToDate(ctx, client)
-	numMessagesProcessed := getNumMessagesProcessed(ctx, client)
+	averageCostToDate := tjfunc.GetRunningAverageCostToDate(ctx, client)
+	numMessagesProcessed := tjfunc.GetNumMessagesProcessed(ctx, client)
 
 	// Calculate running total cost
 	var runningTotalCost float64
@@ -151,8 +130,15 @@ func handleCostDataRequest(w http.ResponseWriter, r *http.Request) {
 		NumMessagesProcessed:    numMessagesProcessed,
 	}
 
+	// Create a combined response object
+	costDataResponse := CostDataResponse{
+		ChartData: chartData,
+		CostData:  costData,
+	}
+
+	// Encode the combined response object as JSON and send it in the response
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(costData)
+	err = json.NewEncoder(w).Encode(costDataResponse)
 	if err != nil {
 		http.Error(w, "Failed to encode JSON response", http.StatusInternalServerError)
 		log.Printf("Failed to encode JSON response: %v", err)
@@ -167,7 +153,7 @@ func getRunningTotalCostToDatechart(ctx context.Context, client *spanner.Client)
 	defer iter.Stop()
 
 	var runningTotalCostPerDate []CostRecord
-	var runningTotalCost float64 // Initialize the running total
+	var runningTotalCost float64
 
 	for {
 		var record CostRecord
@@ -183,10 +169,9 @@ func getRunningTotalCostToDatechart(ctx context.Context, client *spanner.Client)
 			log.Fatalf("Error reading row: %v", err)
 		}
 
-		// Update the running total
 		runningTotalCost += record.Cost
 		record.Date = date
-		record.Cost = runningTotalCost // Set the cumulative total cost for this date
+		record.Cost = runningTotalCost
 		runningTotalCostPerDate = append(runningTotalCostPerDate, record)
 	}
 
@@ -247,46 +232,4 @@ func getRunningTotalCostPerDate(ctx context.Context, client *spanner.Client) []C
 	}
 
 	return runningTotalCostPerDate
-}
-
-func getRunningAverageCostToDate(ctx context.Context, client *spanner.Client) float64 {
-	stmt := spanner.Statement{
-		SQL: `SELECT AVG(cost) AS running_avg_cost FROM jet_tbl`,
-	}
-	iter := client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-
-	var runningAverageCost spanner.NullFloat64
-	row, err := iter.Next()
-	if err != nil {
-		log.Fatalf("Error fetching running average cost: %v", err)
-	}
-	if err := row.ColumnByName("running_avg_cost", &runningAverageCost); err != nil {
-		log.Fatalf("Error reading running average cost: %v", err)
-	}
-
-	return runningAverageCost.Float64
-}
-
-func getNumMessagesProcessed(ctx context.Context, client *spanner.Client) int64 {
-	currentTimestamp := time.Now() // Get the current timestamp
-	stmt := spanner.Statement{
-		SQL: `SELECT COUNT(*) AS num_messages FROM jet_tbl WHERE TIMESTAMP(date) <= @currentTimestamp`,
-		Params: map[string]interface{}{
-			"currentTimestamp": currentTimestamp,
-		},
-	}
-	iter := client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-
-	var numMessages int64
-	row, err := iter.Next()
-	if err != nil {
-		log.Fatalf("Error fetching number of messages processed: %v", err)
-	}
-	if err := row.ColumnByName("num_messages", &numMessages); err != nil {
-		log.Fatalf("Error reading number of messages processed: %v", err)
-	}
-
-	return numMessages
 }

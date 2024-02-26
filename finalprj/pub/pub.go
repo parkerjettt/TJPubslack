@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	topicID = flag.String("topic", "Demo_tj", "Topic name for publishing")
+	projectId = flag.String("project", "alphaus-live", "Project ID for Google Cloud Pub/Sub")
+	topicID   = flag.String("topic", "Demo_tj", "Topic name for publishing")
 )
 
 type Message struct {
@@ -28,7 +29,6 @@ type Message struct {
 
 func main() {
 	flag.Parse()
-	projectId := "alphaus-live"
 	ctx := context.Background()
 
 	if *topicID == "" {
@@ -37,7 +37,7 @@ func main() {
 	}
 
 	// Create a Google Cloud Pub/Sub client
-	client, err := pubsub.NewClient(ctx, projectId)
+	client, err := pubsub.NewClient(ctx, *projectId)
 	if err != nil {
 		log.Println("NewClient failed:", err)
 		return

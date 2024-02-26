@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="css.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.1.1/chartjs-plugin-zoom.min.js"></script>
+
   </head>
 
   <body>
@@ -77,25 +79,29 @@
 
     <script>
       function fetchData() {
-        fetch('http://localhost:8080/cost-data')
+        fetch('http://localhost:8080/data')
           .then(response => response.json())
           .then(data => {
-            if (data && typeof data === 'object') {
-              // Check if the data object and its properties exist
-              const totalCost = data.running_total_cost;
-              const totalCostPerDate = data.running_total_cost_per_date && data.running_total_cost_per_date.length > 0 ? data.running_total_cost_per_date[data.running_total_cost_per_date.length - 1].cost : 0;
-              const averageCost = data.running_average_cost;
-              const numMessagesProcessed = data.num_messages_processed;
+            if (data && data.chart_data && data.chart_data.labels && data.chart_data.datasets && data.chart_data.datasets.length > 0) {
+              // Update total cost to date
+              const totalCostToDate = data.cost_data.running_total_cost;
+              document.getElementById('total-cost').innerText = '$' + totalCostToDate.toFixed(2);
 
-              // Extract latest date and cost
-              const latestDate = data.running_total_cost_per_date && data.running_total_cost_per_date.length > 0 ? data.running_total_cost_per_date[data.running_total_cost_per_date.length - 1].date : 'N/A';
-              const latestCost = totalCostPerDate;
+              // Update total cost per date
+              const totalCostPerDate = data.cost_data.running_total_cost_per_date[data.cost_data.running_total_cost_per_date.length - 1].cost;
+              const latestDate = data.cost_data.running_total_cost_per_date[data.cost_data.running_total_cost_per_date.length - 1].date;
+              document.getElementById('total-cost-per-date').innerText = '$' + totalCostPerDate.toFixed(2) + ' on ' + latestDate;
 
-              // Update the HTML elements with the fetched data
-              document.getElementById('total-cost').innerText = '$' + (totalCost ? totalCost.toFixed(2) : '0');
-              document.getElementById('total-cost-per-date').innerText = '$' + (latestCost ? latestCost.toFixed(2) : '0') + ' on ' + latestDate;
-              document.getElementById('average-cost').innerText = '$' + (averageCost ? averageCost.toFixed(2) : '0');
-              document.getElementById('messages-processed').innerText = numMessagesProcessed ? numMessagesProcessed.toString() : '0';
+              // Update average cost to date
+              const averageCostToDate = data.cost_data.running_average_cost;
+              document.getElementById('average-cost').innerText = '$' + averageCostToDate.toFixed(2);
+
+              // Update number of messages processed
+              const numMessagesProcessed = data.cost_data.num_messages_processed;
+              document.getElementById('messages-processed').innerText = numMessagesProcessed.toString();
+
+              // Render charts using fetched data
+              renderCharts(data.chart_data.labels, data.chart_data.datasets);
             } else {
               console.error('Invalid data format:', data);
             }
@@ -103,54 +109,20 @@
           .catch(error => console.error('Error fetching data:', error));
       }
 
-      // Fetch data when the page loads
-      fetchData();
-
-      function fetchAndRenderCharts() {
-        fetch('http://localhost:8080/chart-data')
-          .then(response => response.json())
-          .then(data => {
-            // Log the received data to inspect its structure
-            console.log(data);
-
-            // Render charts using fetched data
-            renderCostToDateChart(data);
-            renderCostPerDateChart(data);
-          })
-          .catch(error => console.error('Error fetching chart data:', error));
+      function renderCharts(labels, datasets) {
+        renderCostToDateChart(labels, datasets[0]);
+        renderCostPerDateChart(labels, datasets[1]);
       }
 
-      // Function to fetch data and update the dashboard
-      function updateDashboard() {
-        // Fetch cost data
-        fetchData();
-        // Fetch chart data and render charts
-        fetchAndRenderCharts();
-        // Update the dashboard again after a short delay
-        setTimeout(updateDashboard, 500);
-      }
-      // Update the dashboard initially when the page loads
-      updateDashboard();
 
 
-      // Fetch and render charts when the page loads
-      fetchAndRenderCharts();
-
-      // Function to render total cost to date chart
-      function renderCostToDateChart(data) {
+      function renderCostToDateChart(labels, dataset) {
         const costToDateCtx = document.getElementById('costToDateChart').getContext('2d');
         new Chart(costToDateCtx, {
           type: 'line',
           data: {
-            labels: data.labels, // Access 'labels' property instead of 'Labels'
-            datasets: [{
-              label: 'Total Cost to Date',
-              data: data.datasets[0].data,
-              borderColor: 'rgba(255, 99, 132, 1)',
-              backgroundColor: 'rgba(255, 99, 132, 0.2)',
-              borderWidth: 2,
-              fill: true
-            }]
+            labels: labels,
+            datasets: [dataset]
           },
           options: {
             scales: {
@@ -162,21 +134,13 @@
         });
       }
 
-      // Function to render cost per date chart
-      function renderCostPerDateChart(data) {
+      function renderCostPerDateChart(labels, dataset) {
         const costPerDateCtx = document.getElementById('costPerDateChart').getContext('2d');
         new Chart(costPerDateCtx, {
           type: 'line',
           data: {
-            labels: data.labels, // Access 'labels' property instead of 'Labels'
-            datasets: [{
-              label: 'Total Cost per Date',
-              data: data.datasets[1].data,
-              borderColor: 'rgba(54, 162, 235, 1)',
-              backgroundColor: 'rgba(54, 162, 235, 0.2)',
-              borderWidth: 2,
-              fill: true
-            }]
+            labels: labels,
+            datasets: [dataset]
           },
           options: {
             scales: {
@@ -188,8 +152,15 @@
         });
       }
 
-    </script>
+     
+      function updateDashboard() {
+    fetchData();
+    setTimeout(updateDashboard, 200);
+  }
 
+  // Update the dashboard initially when the page loads
+  updateDashboard();
+    </script>
   </body>
 
 </html>
