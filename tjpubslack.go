@@ -14,6 +14,8 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+//the functions used in TJPUBSLACK
+
 type CostRecord struct {
 	Date   spanner.NullDate
 	Cost   float64

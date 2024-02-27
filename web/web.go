@@ -17,16 +17,10 @@ type CostDataResponse struct {
 }
 
 type CostData struct {
-	RunningTotalCost        float64      `json:"running_total_cost"`
-	RunningTotalCostPerDate []CostRecord `json:"running_total_cost_per_date"`
-	RunningAverageCost      float64      `json:"running_average_cost"`
-	NumMessagesProcessed    int64        `json:"num_messages_processed"`
-}
-
-type CostRecord struct {
-	Date   spanner.NullDate `json:"date"`
-	Cost   float64          `json:"cost"`
-	Amount int64            `json:"amount"`
+	RunningTotalCost        float64             `json:"running_total_cost"`
+	RunningTotalCostPerDate []tjfunc.CostRecord `json:"running_total_cost_per_date"`
+	RunningAverageCost      float64             `json:"running_average_cost"`
+	NumMessagesProcessed    int64               `json:"num_messages_processed"`
 }
 
 type ChartData struct {
