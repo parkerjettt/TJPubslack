@@ -192,31 +192,3 @@ func GetRunningTotalCostRecords(ctx context.Context, client *spanner.Client, for
 
 	return runningTotalCostPerDate
 }
-
-func GetRunningTotalCostPerDateWeb(ctx context.Context, client *spanner.Client) []CostRecord {
-	stmt := spanner.Statement{
-		SQL: `SELECT date, SUM(cost) AS total_cost FROM jet_tbl GROUP BY date ORDER BY date`,
-	}
-	iter := client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-
-	var runningTotalCostPerDate []CostRecord
-	for {
-		var record CostRecord
-		var date spanner.NullDate
-		row, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error fetching results: %v", err)
-		}
-		if err := row.Columns(&date, &record.Cost); err != nil {
-			log.Fatalf("Error reading row: %v", err)
-		}
-		record.Date = date
-		runningTotalCostPerDate = append(runningTotalCostPerDate, record)
-	}
-
-	return runningTotalCostPerDate
-}
