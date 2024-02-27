@@ -25,7 +25,7 @@ func main() {
 		log.Fatalf("Failed to create Spanner client: %v", err)
 	}
 	defer client.Close()
-	tjfunc.SendSlackMessage(ctx, client, "https://hooks.slack.com/services/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")
+	tjfunc.SendSlackMessage(ctx, client, "https://hooks.slack.com/services/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")
 	// Use a ticker to send Slack messages every minute
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
@@ -33,7 +33,7 @@ func main() {
 	for {
 		select {
 		case <-ticker.C:
-			go tjfunc.SendSlackMessage(ctx, client, "https://hooks.slack.com/services/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")
+			go tjfunc.SendSlackMessage(ctx, client, "https://hooks.slack.com/services/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")
 		}
 	}
 }
