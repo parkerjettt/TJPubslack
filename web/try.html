@@ -78,6 +78,9 @@
     </main>
 
     <script>
+      let costToDateChart;
+      let costPerDateChart;
+
       function fetchData() {
         fetch('http://localhost:8080/data')
           .then(response => response.json())
@@ -100,8 +103,8 @@
               const numMessagesProcessed = data.cost_data.num_messages_processed;
               document.getElementById('messages-processed').innerText = numMessagesProcessed.toString();
 
-              // Render charts using fetched data
-              renderCharts(data.chart_data.labels, data.chart_data.datasets);
+              // Update charts using fetched data
+              updateCharts(data.chart_data.labels, data.chart_data.datasets);
             } else {
               console.error('Invalid data format:', data);
             }
@@ -109,20 +112,38 @@
           .catch(error => console.error('Error fetching data:', error));
       }
 
-      function renderCharts(labels, datasets) {
-        renderCostToDateChart(labels, datasets[0]);
-        renderCostPerDateChart(labels, datasets[1]);
+      function updateCharts(labels, datasets) {
+        // Update dataset for cost to date chart
+        if (costToDateChart) {
+          costToDateChart.data.labels = labels;
+          costToDateChart.data.datasets[0].data = datasets[0].data;
+          costToDateChart.update();
+        } else {
+          costToDateChart = renderCostToDateChart(labels, datasets[0]);
+        }
+
+        // Update dataset for cost per date chart
+        if (costPerDateChart) {
+          costPerDateChart.data.labels = labels;
+          costPerDateChart.data.datasets[0].data = datasets[1].data;
+          costPerDateChart.update();
+        } else {
+          costPerDateChart = renderCostPerDateChart(labels, datasets[1]);
+        }
       }
-
-
 
       function renderCostToDateChart(labels, dataset) {
         const costToDateCtx = document.getElementById('costToDateChart').getContext('2d');
-        new Chart(costToDateCtx, {
+        return new Chart(costToDateCtx, {
           type: 'line',
           data: {
             labels: labels,
-            datasets: [dataset]
+            datasets: [{
+              label: dataset.label,
+              data: dataset.data,
+              borderColor: dataset.borderColor,
+              backgroundColor: dataset.backgroundColor
+            }]
           },
           options: {
             scales: {
@@ -136,11 +157,16 @@
 
       function renderCostPerDateChart(labels, dataset) {
         const costPerDateCtx = document.getElementById('costPerDateChart').getContext('2d');
-        new Chart(costPerDateCtx, {
+        return new Chart(costPerDateCtx, {
           type: 'line',
           data: {
             labels: labels,
-            datasets: [dataset]
+            datasets: [{
+              label: dataset.label,
+              data: dataset.data,
+              borderColor: dataset.borderColor,
+              backgroundColor: dataset.backgroundColor
+            }]
           },
           options: {
             scales: {
@@ -152,15 +178,16 @@
         });
       }
 
-     
       function updateDashboard() {
-    fetchData();
-    setTimeout(updateDashboard, 200);
-  }
+        fetchData();
+        setTimeout(updateDashboard, 200); // Update every 200 milliseconds
+      }
 
-  // Update the dashboard initially when the page loads
-  updateDashboard();
+      // Update the dashboard initially when the page loads
+      updateDashboard();
     </script>
+
+
   </body>
 
 </html>

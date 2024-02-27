@@ -6,9 +6,9 @@ import (
 	"log"
 	"net/http"
 
+	tjfunc "github.com/parkerjettt/TJPubslack"
+
 	"cloud.google.com/go/spanner"
-	"github.com/parkerjettt/tjfunc"
-	"google.golang.org/api/iterator"
 )
 
 type CostDataResponse struct {
@@ -70,7 +70,7 @@ func handleDataRequest(w http.ResponseWriter, r *http.Request) {
 	defer client.Close()
 
 	// Fetching data for chart
-	costToDateRecords := getRunningTotalCostToDatechart(ctx, client)
+	costToDateRecords := tjfunc.GetRunningTotalCostRecords(ctx, client, true)
 	costPerDateRecords := tjfunc.GetRunningTotalCostPerDate(ctx, client)
 
 	// Populate the labels array with date values
@@ -112,8 +112,8 @@ func handleDataRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetching data for cost
-	totalCostToDate := getRunningTotalCostToDate(ctx, client)
-	totalCostPerDate := getRunningTotalCostPerDate(ctx, client)
+	totalCostToDate := tjfunc.GetRunningTotalCostRecords(ctx, client, false)
+	totalCostPerDate := tjfunc.GetRunningTotalCostPerDateWeb(ctx, client)
 	averageCostToDate := tjfunc.GetRunningAverageCostToDate(ctx, client)
 	numMessagesProcessed := tjfunc.GetNumMessagesProcessed(ctx, client)
 
@@ -144,92 +144,4 @@ func handleDataRequest(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to encode JSON response: %v", err)
 		return
 	}
-}
-func getRunningTotalCostToDatechart(ctx context.Context, client *spanner.Client) []CostRecord {
-	stmt := spanner.Statement{
-		SQL: `SELECT date, SUM(cost) AS total_cost FROM jet_tbl GROUP BY date ORDER BY date`,
-	}
-	iter := client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-
-	var runningTotalCostPerDate []CostRecord
-	var runningTotalCost float64
-
-	for {
-		var record CostRecord
-		var date spanner.NullDate
-		row, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error fetching results: %v", err)
-		}
-		if err := row.Columns(&date, &record.Cost); err != nil {
-			log.Fatalf("Error reading row: %v", err)
-		}
-
-		runningTotalCost += record.Cost
-		record.Date = date
-		record.Cost = runningTotalCost
-		runningTotalCostPerDate = append(runningTotalCostPerDate, record)
-	}
-
-	return runningTotalCostPerDate
-}
-
-func getRunningTotalCostToDate(ctx context.Context, client *spanner.Client) []CostRecord {
-	stmt := spanner.Statement{
-		SQL: `SELECT date, SUM(cost) AS total_cost FROM jet_tbl GROUP BY date ORDER BY date`,
-	}
-	iter := client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-
-	var runningTotalCostPerDate []CostRecord
-	for {
-		var record CostRecord
-		var date spanner.NullDate
-		row, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error fetching results: %v", err)
-		}
-		if err := row.Columns(&date, &record.Cost); err != nil {
-			log.Fatalf("Error reading row: %v", err)
-		}
-		record.Date = date
-		runningTotalCostPerDate = append(runningTotalCostPerDate, record)
-	}
-
-	return runningTotalCostPerDate
-}
-
-func getRunningTotalCostPerDate(ctx context.Context, client *spanner.Client) []CostRecord {
-	stmt := spanner.Statement{
-		SQL: `SELECT date, SUM(cost) AS total_cost FROM jet_tbl GROUP BY date ORDER BY date`,
-	}
-	iter := client.Single().Query(ctx, stmt)
-	defer iter.Stop()
-
-	var runningTotalCostPerDate []CostRecord
-	for {
-		var record CostRecord
-		var date spanner.NullDate
-		row, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.Fatalf("Error fetching results: %v", err)
-		}
-		if err := row.Columns(&date, &record.Cost); err != nil {
-			log.Fatalf("Error reading row: %v", err)
-		}
-		record.Date = date
-		runningTotalCostPerDate = append(runningTotalCostPerDate, record)
-	}
-
-	return runningTotalCostPerDate
 }

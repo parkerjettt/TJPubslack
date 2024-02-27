@@ -5,8 +5,9 @@ import (
 	"log"
 	"time"
 
+	tjfunc "github.com/parkerjettt/TJPubslack"
+
 	"cloud.google.com/go/spanner"
-	"github.com/parkerjettt/tjfunc"
 	"google.golang.org/api/option"
 )
 
